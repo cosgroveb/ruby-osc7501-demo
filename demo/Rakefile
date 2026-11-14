@@ -1,0 +1,5 @@
+require "rspec/core/rake_task"
+require "rake/osc7501"
+
+RSpec::Core::RakeTask.new(:spec)
+task default: :spec
