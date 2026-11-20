@@ -84,3 +84,10 @@ bundle exec ruby test/thor_test.rb
 
 The tests assert the bytes each adapter writes. They do not observe rendering in
 a terminal that supports OSC 7501.
+
+## Project
+
+[Contributing](CONTRIBUTING.md), [accessibility](ACCESSIBILITY.md),
+[security](SECURITY.md), [code of conduct](CODE_OF_CONDUCT.md)
+
+Licensed under [Apache License 2.0](LICENSE).
