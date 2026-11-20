@@ -1,5 +1,6 @@
 require "minitest/autorun"
 require "open3"
+require "pty"
 require "fileutils"
 require "tmpdir"
 
@@ -8,6 +9,20 @@ class DemoTest < Minitest::Test
 
   def run_demo(env = {})
     Open3.capture2e(FORCE.merge(env), "bundle", "exec", "rake")
+  end
+
+  def run_in_terminal(env)
+    reader, writer, pid = PTY.spawn(FORCE.merge(env), "bundle", "exec", "rake")
+    output = +""
+    begin
+      reader.each_char { |char| output << char }
+    rescue Errno::EIO
+      # Linux raises EIO once the child closes the terminal.
+    end
+    [output, Process.wait2(pid).last]
+  ensure
+    reader&.close
+    writer&.close
   end
 
   def frames(output)
@@ -62,7 +77,7 @@ class DemoTest < Minitest::Test
 
   def test_auto_mode_is_silent_on_a_dumb_terminal
     env = FORCE.transform_values { "auto" }.merge("TERM" => "dumb")
-    output, status = Open3.capture2e(env, "script", "-q", "-e", "-c", "bundle exec rake", "/dev/null")
+    output, status = run_in_terminal(env)
     assert status.success?, output
     assert_empty frames(output)
     assert_includes output, "Thor demo complete"
