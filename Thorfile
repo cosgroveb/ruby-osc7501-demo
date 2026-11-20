@@ -1,19 +1,22 @@
-require "thor/osc7501"
+# frozen_string_literal: true
 
+require 'thor/osc7501'
+
+# Commands for the Thor phase of the demo.
 class Demo < Thor
-  desc "perform", "Run the Thor demo"
+  desc 'perform', 'Run the Thor demo'
   def perform
     sleep 0.5
-    say "Thor demo complete"
+    say 'Thor demo complete'
   end
-  desc "prompt", "Ask for a name"
+  desc 'prompt', 'Ask for a name'
   def prompt
-    name = ask("Name?")
+    name = ask('Name?')
     say "Hello, #{name}!"
   end
 
-  desc "failure", "Raise an intentional error"
+  desc 'failure', 'Raise an intentional error'
   def failure
-    raise "Intentional failure"
+    raise 'Intentional failure'
   end
 end

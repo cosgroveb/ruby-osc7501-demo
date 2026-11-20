@@ -1,8 +1,10 @@
-require_relative "../demo/example"
+# frozen_string_literal: true
+
+require_relative '../demo/example'
 
 RSpec.describe Example do
-  it "greets by name" do
+  it 'greets by name' do
     sleep 0.5
-    expect(Example.greeting("Ruby")).to eq("Hello, Ruby!")
+    expect(Example.greeting('Ruby')).to eq('Hello, Ruby!')
   end
 end

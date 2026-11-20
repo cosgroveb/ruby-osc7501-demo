@@ -1,19 +1,21 @@
-require "minitest/autorun"
-require "open3"
-require "pty"
-require "fileutils"
-require "tmpdir"
+# frozen_string_literal: true
+
+require 'minitest/autorun'
+require 'open3'
+require 'pty'
+require 'fileutils'
+require 'tmpdir'
 
 class DemoTest < Minitest::Test
-  FORCE = %w[RAKE RSPEC THOR RUBOCOP].to_h { |name| ["#{name}_OSC7501", "force"] }.freeze
+  FORCE = %w[RAKE RSPEC THOR RUBOCOP].to_h { |name| ["#{name}_OSC7501", 'force'] }.freeze
 
   def run_demo(env = {})
-    Open3.capture2e(FORCE.merge(env), "bundle", "exec", "rake")
+    Open3.capture2e(FORCE.merge(env), 'bundle', 'exec', 'rake')
   end
 
   def run_in_terminal(env)
-    reader, writer, pid = PTY.spawn(FORCE.merge(env), "bundle", "exec", "rake")
-    output = +""
+    reader, writer, pid = PTY.spawn(FORCE.merge(env), 'bundle', 'exec', 'rake')
+    output = +''
     begin
       reader.each_char { |char| output << char }
     rescue Errno::EIO
@@ -27,66 +29,69 @@ class DemoTest < Minitest::Test
 
   def frames(output)
     output.scan(/\e\]7501;([^\e]*)\e\\/).flatten.map do |frame|
-      frame.split(":").to_h { |field| field.split("=", 2) }
+      frame.split(':').to_h { |field| field.split('=', 2) }
     end
   end
 
-  def in_copy
+  def in_copy(&)
     Dir.mktmpdir do |dir|
       FileUtils.cp_r(%w[Gemfile Gemfile.lock Rakefile Thorfile .rubocop.yml demo spec], dir)
-      Dir.chdir(dir) { yield }
+      Dir.chdir(dir, &)
     end
   end
 
   def test_default_reports_each_phase_and_keeps_ordinary_output
     output, status = run_demo
     assert status.success?, output
-    assert_includes output, "1 example, 0 failures"
-    assert_includes output, "Thor demo complete"
-    assert_includes output, "1 file inspected, no offenses detected"
+    assert_includes output, '1 example, 0 failures'
+    assert_includes output, 'Thor demo complete'
+    assert_includes output, '1 file inspected, no offenses detected'
+    assert_phase_records frames(output)
+  end
 
-    records = frames(output)
-    completed = records.select { |frame| frame["state"] == "done" }
-    assert_equal %w[rspec rake thor rubocop], completed.map { |frame| frame["app"] }
-    assert_match(%r{\Arake-.+/rspec-1\z}, completed.first.fetch("id"))
-    assert_equal %w[rake rspec thor rubocop], records.map { |frame| frame["app"] }.uniq
+  def assert_phase_records(records)
+    completed = records.select { |frame| frame['state'] == 'done' }
+    assert_equal(%w[rspec rake thor rubocop], completed.map { |frame| frame['app'] })
+    assert_match(%r{\Arake-.+/rspec-1\z}, completed.first.fetch('id'))
+    assert_equal %w[rake rspec thor rubocop], records.map { |frame| frame['app'] }.uniq
   end
 
   def test_failing_spec_stops_later_phases
     in_copy do
-      File.write("spec/failure_spec.rb", "RSpec.describe('failure') { it('fails') { expect(1).to eq(2) } }\n")
+      File.write('spec/failure_spec.rb', "RSpec.describe('failure') { it('fails') { expect(1).to eq(2) } }\n")
       output, status = run_demo
       refute status.success?, output
-      assert_includes output, "1 failure"
-      assert_equal %w[rspec rake], frames(output).select { |frame| frame["state"] == "error" }.map { |frame| frame["app"] }
-      refute_includes output, "Thor demo complete"
-      refute_includes output, "Inspecting 1 file"
+      assert_includes output, '1 failure'
+      errors = frames(output).select { |frame| frame['state'] == 'error' }
+      assert_equal(%w[rspec rake], errors.map { |frame| frame['app'] })
+      refute_includes output, 'Thor demo complete'
+      refute_includes output, 'Inspecting 1 file'
     end
   end
 
   def test_failing_thor_stops_rubocop
     in_copy do
-      File.write("Thorfile", File.read("Thorfile").sub('say "Thor demo complete"', 'raise "Thor failure"'))
+      File.write('Thorfile', File.read('Thorfile').sub("say 'Thor demo complete'", "raise 'Thor failure'"))
       output, status = run_demo
       refute status.success?, output
-      assert_includes output, "Thor failure"
-      assert frames(output).any? { |frame| frame["app"] == "thor" && frame["state"] == "error" }
-      refute_includes output, "Inspecting 1 file"
+      assert_includes output, 'Thor failure'
+      assert(frames(output).any? { |frame| frame['app'] == 'thor' && frame['state'] == 'error' })
+      refute_includes output, 'Inspecting 1 file'
     end
   end
 
   def test_auto_mode_is_silent_on_a_dumb_terminal
-    env = FORCE.transform_values { "auto" }.merge("TERM" => "dumb")
+    env = FORCE.transform_values { 'auto' }.merge('TERM' => 'dumb')
     output, status = run_in_terminal(env)
     assert status.success?, output
     assert_empty frames(output)
-    assert_includes output, "Thor demo complete"
+    assert_includes output, 'Thor demo complete'
   end
 
   def test_auto_mode_is_silent_when_redirected
-    output, status = run_demo(FORCE.transform_values { "auto" }.merge("TERM" => "xterm"))
+    output, status = run_demo(FORCE.transform_values { 'auto' }.merge('TERM' => 'xterm'))
     assert status.success?, output
     assert_empty frames(output)
-    assert_includes output, "Thor demo complete"
+    assert_includes output, 'Thor demo complete'
   end
 end
